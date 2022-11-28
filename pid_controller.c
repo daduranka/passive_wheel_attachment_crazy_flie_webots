@@ -105,7 +105,47 @@ void pid_attitude_controller(actual_state_t actual_state, desired_state_t *desir
   pastYawRateError = yawRateError;
 }
 
+void pid_rolling_attitude_controller(actual_state_t actual_state, desired_state_t *desired_state, gains_pid_t gains_pid, double dt,
+                             control_commands_t *control_commands) {
+  // Calculate errors
+  double pitchError = desired_state->pitch - actual_state.pitch;
+  double pitchDerivativeError = (pitchError - pastPitchError) / dt;
+  double rollError = desired_state->roll - actual_state.roll;
+  double rollDerivativeError = (rollError - pastRollError) / dt;
+  double yawRateError = desired_state->yaw_rate - actual_state.yaw_rate;
+
+  // PID control
+  control_commands->roll = gains_pid.kp_att_rp * constrain(rollError, -1, 1) + gains_pid.kd_att_rp * rollDerivativeError;
+  control_commands->pitch = -gains_pid.kp_att_rp * constrain(pitchError, -1, 1) - gains_pid.kd_att_rp * pitchDerivativeError;
+  control_commands->yaw = gains_pid.kp_att_y * constrain(yawRateError, -1, 1);
+
+  // Save error for the next round
+  pastPitchError = pitchError;
+  pastRollError = rollError;
+  pastYawRateError = yawRateError;
+}
+
+
 void pid_horizontal_velocity_controller(actual_state_t actual_state, desired_state_t *desired_state, gains_pid_t gains_pid,
+                                        double dt) {
+  double vxError = desired_state->vx - actual_state.vx;
+  double vxDerivative = (vxError - pastVxError) / dt;
+  double vyError = desired_state->vy - actual_state.vy;
+  double vyDerivative = (vyError - pastVyError) / dt;
+
+  // PID control
+  double pitchCommand = gains_pid.kp_vel_xy * constrain(vxError, -1, 1) + gains_pid.kd_vel_xy * vxDerivative;
+  double rollCommand = -gains_pid.kp_vel_xy * constrain(vyError, -1, 1) - gains_pid.kd_vel_xy * vyDerivative;
+
+  desired_state->pitch = pitchCommand;
+  desired_state->roll = rollCommand;
+
+  // Save error for the next round
+  pastVxError = vxError;
+  pastVyError = vyError;
+}
+
+void pid_rolling_horizontal_velocity_controller(actual_state_t actual_state, desired_state_t *desired_state, gains_pid_t gains_pid,
                                         double dt) {
   double vxError = desired_state->vx - actual_state.vx;
   double vxDerivative = (vxError - pastVxError) / dt;
