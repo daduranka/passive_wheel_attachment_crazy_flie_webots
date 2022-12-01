@@ -94,17 +94,17 @@ int main(int argc, char **argv) {
   double past_time = wb_robot_get_time();
 
   // Initialize PID gains.
-  gains_pid_t gains_pid;
+  gains_pid_t gains_pid;                                             //gains tuning
   gains_pid.kp_att_y = 1;
   gains_pid.kd_att_y = 0.5;
   gains_pid.kp_att_rp = 0.5;
   gains_pid.kd_att_rp = 0.1;
   gains_pid.kp_vel_xy = 2;
   gains_pid.kd_vel_xy = 0.5;
-  gains_pid.kp_z = 10;
-  gains_pid.ki_z = 50;
-  gains_pid.kd_z = 5;
-  init_pid_attitude_fixed_height_controller();
+  gains_pid.kp_z = 10;                                                //Altitude control
+  gains_pid.ki_z = 50;                                                //Altitude control
+  gains_pid.kd_z = 5;                                                 //Altitude contorl
+  init_pid_attitude_fixed_height_controller();                        //Altitude control
 
   // Initialize struct for motor power
   motor_power_t motor_power;
@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
     actual_state.roll = wb_inertial_unit_get_roll_pitch_yaw(imu)[0];
     actual_state.pitch = wb_inertial_unit_get_roll_pitch_yaw(imu)[1];
     actual_state.yaw_rate = wb_gyro_get_values(gyro)[2];
-    actual_state.altitude = wb_gps_get_values(gps)[2];
+    actual_state.altitude = wb_gps_get_values(gps)[2];                      //Altitude control
     double x_global = wb_gps_get_values(gps)[0];
     double vx_global = (x_global - past_x_global) / dt;
     double y_global = wb_gps_get_values(gps)[1];
@@ -145,14 +145,14 @@ int main(int argc, char **argv) {
     desired_state.vx = 0;
     desired_state.vy = 0;
     desired_state.yaw_rate = 0;
-    desired_state.altitude = 1.0;
+    desired_state.altitude = 1.0;                                           //Altitude control
 
-    double forward_desired = 0;
+    double forward_desired = 0;                                             //can add desired altitude controls
     double sideways_desired = 0;
     double yaw_desired = 0;
 
     // Control altitude
-    int key = wb_keyboard_get_key();
+    int key = wb_keyboard_get_key();                                        //modify for height controls
     while (key > 0) {
       switch (key) {
         case WB_KEYBOARD_UP:
@@ -174,7 +174,7 @@ int main(int argc, char **argv) {
           yaw_desired = -0.5;
           break;
       }
-      key = wb_keyboard_get_key();
+      key = wb_keyboard_get_key();                                       
     }
 
     // Example how to get sensor data
@@ -186,7 +186,7 @@ int main(int argc, char **argv) {
     // PID velocity controller with fixed height
     desired_state.vy = sideways_desired;
     desired_state.vx = forward_desired;
-    pid_velocity_fixed_height_controller(actual_state, &desired_state, gains_pid, dt, &motor_power);
+    pid_velocity_fixed_height_controller(actual_state, &desired_state, gains_pid, dt, &motor_power);    //Used to control fixed height controller
 
     // Setting motorspeed
     wb_motor_set_velocity(m1_motor, -motor_power.m1);
@@ -194,7 +194,7 @@ int main(int argc, char **argv) {
     wb_motor_set_velocity(m3_motor, -motor_power.m3);
     wb_motor_set_velocity(m4_motor, motor_power.m4);
 
-    // Save past time for next time step
+    // Save past time for next time step                                  //potentially add for desired altitude
     past_time = wb_robot_get_time();
     past_x_global = x_global;
     past_y_global = y_global;
